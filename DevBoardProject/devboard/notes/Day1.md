@@ -133,7 +133,10 @@ No corrections needed — this was a clean, correct extension of the existing da
 ## Interview Questions — Answers & Review
 
 **1. What problem does a layout route solve that rendering `<Sidebar/>` in every page doesn't?**
-*(Not yet answered — revisit before interviews.)*
+
+> "We don't have to repeat the code. Sidebar not flickers, and state of sidebar retains also."
+
+**Review: Correct raw understanding, needs sharper interview packaging.** The deeper concept underneath "no repeat/no flicker/state retained" is **drift risk**: this isn't a runtime bug, it's a maintenance-decay problem. If `<Sidebar/>` were duplicated inside every page, nothing crashes when someone adds a new page and forgets to include it (or copy-pastes an outdated version) — the pages just silently stop looking consistent over time because nothing structurally enforces it. A layout route makes that divergence *impossible*, not just less likely, since there's exactly one render location for persistent chrome. Interview-ready phrasing: *"A layout route establishes one render location for persistent chrome, so shared UI can't drift out of sync, and its internal state naturally survives navigation since it isn't remounting."*
 
 **2. Why does `NavLink` need the `end` prop on some routes but not others?**
 
@@ -141,7 +144,55 @@ No corrections needed — this was a clean, correct extension of the existing da
 
 **Review: Correct.** Precisely worded — "prefix match" is exactly the right mental model, and the failure mode (Dashboard staying highlighted everywhere) was correctly identified, not just the mechanism.
 
-**3–10.** *(Not yet answered — remaining questions to revisit: BrowserRouter vs HashRouter, feature-based vs type-based breakdown at scale, what `<Outlet/>` does conceptually, why path aliases now vs later, when `shared/` becomes a liability, why Vite is faster in dev, the "rule of three," and the near-identical-tables abstraction scenario.)*
+**3. What's the difference between `BrowserRouter` and `HashRouter`, and when would you choose each?**
+
+*(Answered as "don't know anything.")*
+
+**Review — for reference:** `BrowserRouter` uses the real URL path (`/incidents`) via the HTML5 History API — clean URLs, but requires the server to serve `index.html` for any path (otherwise refreshing `/incidents` 404s, since no file exists at that path). `HashRouter` uses a `#` (`/#/incidents`) — everything after `#` is client-side only, works on any static host with zero config, but looks dated and hurts SEO. **We use `BrowserRouter`** — correct choice for any real app on properly configured hosting (Vercel handles this correctly). `HashRouter` is really only for constrained static hosts you can't configure.
+
+**4. Explain feature-based vs type-based folder structure — what breaks down with type-based structure as an app scales?**
+
+> "In type based structure, when app scales it will become hard to find component of the particular feature and if we need to change a component of one feature then it will touches 3 to 4 files."
+
+**Review: Correct.** Good, concrete framing.
+
+**5. What does `<Outlet />` actually do under the hood, conceptually?**
+
+> "Its just a placeholder, where react router renders the required component based on url."
+
+**Review: Correct but thin.** Deepen it: `<Outlet/>` isn't magic — React Router looks at the current URL, matches it against the route tree, and renders the matched child element at the exact JSX location where `<Outlet/>` sits in the parent. Conceptually it's just "conditional children," implemented by the router instead of manually writing `{condition && <Component/>}` yourself.
+
+**6. Why did we configure path aliases now instead of later?**
+
+> "Because later we need to change imports in each file."
+
+**Review: Correct, but there's a sharper reason.** Doing it later means changing imports in **every file that exists by then** — potentially hundreds by Day 20 — versus 7 files today. The cost isn't just "annoying," it scales directly with how many files exist at the time you make the change. That's the real argument for front-loading structural decisions.
+
+**7. What's a scenario where premature use of `shared/` for a component becomes a liability?**
+
+> "We need to follow YAGNI... move to shared only when 2+ uses are there."
+
+**Review: Answered with the rule-of-three definition, not a scenario — this question wanted a concrete example.** Example: you build an `IncidentCard` for the incidents feature, then need something visually similar for a `NotificationCard` in Week 2. If you abstract to one shared `<Card variant="incident"|"notification">` after seeing it used only *twice*, you often guess wrong about what actually varies — ending up with a component full of conditional props trying to serve two masters. That's the actual liability: premature abstraction based on too little evidence, not just "an extra folder."
+
+**8. Why is Vite faster in dev than a Webpack-based tool like CRA?**
+
+> "Hot Module Reloading (HMR), fast, also CRA is dead there is no updates and slow."
+
+**Review: Correct.**
+
+**9. What's the "rule of three" and how does it apply to extracting shared code?**
+
+> "We need to follow YAGNI: You're not gonna need it — move a component to shared only when 2+ uses of it are there."
+
+**Review: Correct — right target this time** (note: precisely it's "3+", not "2+" — extract once a pattern repeats a *third* time, not the second).
+
+**10. If two features needed nearly identical but not-quite-the-same tables, would you abstract them into one shared component immediately? Why or why not?**
+
+> "No, we need to follow YAGNI... move to shared only when 2+ uses are there."
+
+**Review: Right instinct ('No'), reasoning needs to be scenario-specific.** Two "nearly identical but not-quite" tables is exactly the Q7 trap — forcing one shared `<Table>` too early produces a component riddled with `if (variant === 'incidents')` branches, which is *harder* to maintain than two separate simpler tables. Wait for a third near-identical table before abstracting — at that point the real shared shape (columns config, sorting, pagination) becomes obvious instead of guessed.
+
+**Overall assessment:** Q4, Q6, Q8, Q9 solid. Q1 and Q5 correct but need sharper interview phrasing (stated above). Q7 and Q10 show the rule of three is memorized but not yet applied to a concrete scenario — worth practicing, since "knowing the rule" and "spotting when you're about to violate it" are different skills, and interviews test the second one. Q3 needs review (notes above).
 
 ---
 
