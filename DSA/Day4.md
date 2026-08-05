@@ -1,7 +1,5 @@
 # DSA Day 4 — Hash Maps & Hash Sets: The O(1) Lookup Superpower
 
----
-
 ## Part 1: What Problem Does Hashing Solve?
 
 You've already used objects and arrays as frequency counters in Days 2 and 3. Today we go under the hood: **why does `map[key]` give O(1) lookup, no matter how many keys exist?**
